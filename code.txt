@@ -1,0 +1,45 @@
+import os
+import sys
+from datetime import datetime
+from openpyxl import load_workbook
+
+# Check if the Excel file argument is provided
+if len(sys.argv) < 2:
+    print(f"Usage: {sys.argv[0]} <Excel file>")
+    sys.exit(1)
+
+# Load the Excel file
+filename = sys.argv[1]
+workbook = load_workbook(filename)
+worksheet = workbook.active
+
+# Loop through the hostnames and ping them
+for i, row in enumerate(worksheet.iter_rows(min_row=2, min_col=1, max_col=1)):
+    hostname = row[0].value
+    if hostname:
+        # Execute the ping command and capture the output
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"{hostname}_{timestamp}.txt"
+        command = f"ping -c 5 -W 2 {hostname} > {filename}"
+        os.system(command)
+
+        # Read the output from the text file
+        with open(filename, "r") as f:
+            ping_output = f.read()
+
+        # Write the output to the Excel file
+        cell = worksheet.cell(row=i+2, column=2)
+        cell.value = ping_output
+
+        print(f"Ping result for {hostname} saved to {filename} and Excel file")
+
+# Save the modified Excel file
+workbook.save(filename)
+
+# Remove the temporary text files
+for i, row in enumerate(worksheet.iter_rows(min_row=2, min_col=1, max_col=1)):
+    hostname = row[0].value
+    if hostname:
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"{hostname}_{timestamp}.txt"
+        os.remove(filename)
